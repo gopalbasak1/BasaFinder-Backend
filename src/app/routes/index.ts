@@ -4,6 +4,8 @@ import orderRoute from '../module/order-model/order.router';
 import { UserRoute } from '../module/user/user.route';
 import { AuthRoutes } from '../module/auth/auth.route';
 import reviewRouter from '../module/Review/review.router';
+import { AddressRoute } from '../module/address/address.route';
+import { RentalRoute } from '../module/rentalhouse/rentalhouse.route';
 
 const router = Router();
 
@@ -30,6 +32,14 @@ const moduleRoutes = [
   {
     path: '/reviews',
     route: reviewRouter,
+  },
+  {
+    path: '/address',
+    route: AddressRoute,
+  },
+  {
+    path: '/rental',
+    route: RentalRoute,
   },
 ];
 

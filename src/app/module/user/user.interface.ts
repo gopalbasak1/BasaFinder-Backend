@@ -11,8 +11,10 @@ export type TUser = {
   image?: string;
   password: string;
   needsPasswordChange: boolean;
+  isListings?: boolean;
   passwordChangedAt?: Date;
   status: 'in-progress' | 'blocked';
+  lastLogin: Date;
   isActive: boolean;
   isDeleted: boolean;
 };

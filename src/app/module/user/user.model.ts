@@ -48,10 +48,18 @@ const userSchema = new Schema<TUser, UserModel>(
       type: Boolean,
       default: true,
     },
+    isListings: {
+      type: Boolean,
+      default: true,
+    },
     status: {
       type: String,
       enum: ['in-progress', 'blocked'],
       default: 'in-progress',
+    },
+    lastLogin: {
+      type: Date,
+      default: Date.now,
     },
   },
   {

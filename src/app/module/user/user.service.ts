@@ -5,21 +5,6 @@ import { userSearchableFields } from './user.constant';
 import { TUser } from './user.interface';
 import { User } from './user.model';
 
-// const createUserIntoDB = async (password: string, payload: TUser) => {
-//   const existing = await User.findOne({ email: payload?.email });
-
-//   if (existing) {
-//     throw new AppError(httpStatus.CONFLICT, 'User already exists');
-//   }
-
-//   const userData: Partial<TUser> = { ...payload };
-//   userData.password = password || (config.default_password as string);
-
-//   const result = await User.create(userData);
-//   console.log(result);
-//   return result;
-// };
-
 const getAllUsersFromDB = async (query: Record<string, unknown>) => {
   const userQuery = new QueryBuilder(User.find(), query)
     .search(userSearchableFields)
@@ -50,11 +35,28 @@ const updateUserIntoDB = async (id: string, data: Partial<TUser> | any) => {
   return updatedUser;
 };
 
-const changeStatus = async (id: string, payload: { status: string }) => {
+const changeActivityIntoDB = async (
+  id: string,
+  payload: { isActive: boolean },
+) => {
   const result = await User.findByIdAndUpdate(id, payload, {
     new: true,
   });
   return result;
+};
+
+const deleteUserIntoDB = async (userId: string) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Perform the deletion (Mark as deleted instead of physically removing from DB)
+  user.isDeleted = false;
+  await user.save();
+
+  return user;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -68,6 +70,7 @@ export const UserServices = {
   // createUserIntoDB,
   getAllUsersFromDB,
   updateUserIntoDB,
-  changeStatus,
+  changeActivityIntoDB,
   getMe,
+  deleteUserIntoDB,
 };

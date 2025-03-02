@@ -7,7 +7,7 @@ const reviewRouter = Router();
 
 reviewRouter.post(
   '/create-review',
-  auth(USER_ROLE.admin, USER_ROLE.customer),
+  auth(USER_ROLE.admin, USER_ROLE.tenant),
   reviewController.createReview,
 );
 reviewRouter.get('/', reviewController.getAllReviews);

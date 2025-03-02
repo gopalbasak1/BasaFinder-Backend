@@ -48,6 +48,10 @@ const login = async (payload: TLoginUser) => {
   if (isUserStatus === 'blocked')
     throw new AppError(httpStatus.FORBIDDEN, 'This user is block !');
 
+  if (user?.isActive === false) {
+    throw new AppError(httpStatus.FORBIDDEN, 'This user is not active !');
+  }
+
   //checking if the password is correct
   const isMatch = await bcrypt.compare(payload?.password, user?.password);
   if (!isMatch) {

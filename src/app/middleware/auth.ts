@@ -28,10 +28,22 @@ export const auth = (...requiredRoles: TUserRole[]) => {
       throw new AppError(httpStatus.UNAUTHORIZED, 'Unauthorized');
     }
 
+    // Create query for finding user by email or phone number
+    let query = {};
+    if (decoded.email) {
+      query = { email: decoded.email };
+    } else if (decoded.phoneNumber) {
+      query = { phoneNumber: decoded.phoneNumber };
+    } else {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Email or phone number is required.',
+      );
+    }
     // const { role, email, iat } = decoded;
 
     // Find the user by email
-    const user = await User.findOne({ email: decoded.email });
+    const user = await User.findOne(query);
     if (!user) {
       throw new AppError(httpStatus.NOT_FOUND, 'User not found');
     }
@@ -62,10 +74,11 @@ export const auth = (...requiredRoles: TUserRole[]) => {
     // Attach the full user details to `req.user`
     req.user = {
       id: user._id.toString(),
-      role: user.role as 'admin' | 'customer',
-      email: user.email,
-      image: user.image,
-      name: user.name,
+      role: user.role as 'admin' | 'landlord' | 'tenant',
+      email: user?.email,
+      image: user?.image,
+      name: user?.name,
+      phoneNumber: user?.phoneNumber,
     };
 
     //console.log('Authenticated User:', req.user);
