@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-unused-vars */
 import QueryBuilder from '../../builder/QueryBuilder';
+import AppError from '../../errors/AppErrors';
+import { RentalListing } from '../rentalhouse/rentalhouse.model';
 import { userSearchableFields } from './user.constant';
 import { TUser } from './user.interface';
 import { User } from './user.model';
+import httpStatus from 'http-status-codes';
 
 const getAllUsersFromDB = async (query: Record<string, unknown>) => {
   const userQuery = new QueryBuilder(User.find(), query)
@@ -52,9 +55,17 @@ const deleteUserIntoDB = async (userId: string) => {
     throw new Error('User not found');
   }
 
-  // Perform the deletion (Mark as deleted instead of physically removing from DB)
-  user.isDeleted = false;
-  await user.save();
+  // If the user is a landlord, we need to delete or update all of their rental houses
+  if (user.role === 'landlord') {
+    // Option 1: Delete all rental houses created by this landlord
+    await RentalListing.deleteMany({ landlordId: userId });
+
+    await User.findByIdAndDelete(userId);
+    return {
+      message:
+        'Landlord deleted successfully along with all their rental houses',
+    };
+  }
 
   return user;
 };
@@ -66,6 +77,34 @@ const getMe = async (userid: string, role: string) => {
   return result;
 };
 
+/**
+ * Update a user's role.
+ * - Allows conversion of tenants to landlords (or vice versa) or promoting a user to admin.
+ * - Prevents demoting an admin to a non-admin role.
+ */
+const updateUserRoleIntoDB = async (
+  userId: string,
+  newRole: 'admin' | 'landlord' | 'tenant',
+) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  // If the current user is an admin and the new role is not admin, do not allow change.
+  if (user.role === 'admin' && newRole !== 'admin') {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You cannot change another admin’s role',
+    );
+  }
+
+  // Otherwise, update the role
+  user.role = newRole;
+  const updatedUser = await user.save();
+  return updatedUser;
+};
+
 export const UserServices = {
   // createUserIntoDB,
   getAllUsersFromDB,
@@ -73,4 +112,5 @@ export const UserServices = {
   changeActivityIntoDB,
   getMe,
   deleteUserIntoDB,
+  updateUserRoleIntoDB,
 };

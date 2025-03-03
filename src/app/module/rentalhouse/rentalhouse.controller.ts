@@ -3,6 +3,7 @@ import catchAsync from '../../utils/catchAsync';
 import httpStatus from 'http-status-codes';
 import sendResponse from '../../utils/sendResponse';
 import { RentalListingService } from './rentalhouse.service';
+import AppError from '../../errors/AppErrors';
 
 const createRentalHouse = catchAsync(async (req: Request, res: Response) => {
   const user = req.user;
@@ -43,7 +44,104 @@ const getAllRental = catchAsync(async (req, res) => {
   });
 });
 
+const getMyRental = catchAsync(async (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'User not found');
+  }
+
+  const result = await RentalListingService.getMyRentalIntoDB(
+    userId,
+    req?.query,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Rental retrieved successfully',
+    meta: result?.meta,
+    data: result?.result,
+  });
+});
+
+const updateRentalByLandlord = catchAsync(async (req, res) => {
+  const landlordId = req.user?.id;
+  const rentalId = req.params.rentalId;
+  const body = req.body;
+  const result = await RentalListingService.updateRentalByLandlordIntoDB(
+    landlordId as string,
+    rentalId,
+    body,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Rental house update successfully',
+    data: result,
+  });
+});
+
+const updateRentalByAdmin = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const rentalId = req.params?.rentalId;
+  const body = req.body;
+  const result = await RentalListingService.updateRentalByAdminIntoDB(
+    adminId as string,
+    rentalId,
+    body,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Rental house update successfully',
+    data: result,
+  });
+});
+
+const deleteRentalByLandlord = catchAsync(async (req, res) => {
+  const landlordId = req.user?.id;
+
+  const rentalId = req.params.rentalId;
+
+  const result = await RentalListingService.deleteRentalFromDB(
+    landlordId as string,
+    rentalId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Rental house delete successfully',
+    data: result,
+  });
+});
+
+const deleteRentalByAdmin = catchAsync(async (req, res) => {
+  const adminId = req.user?.id;
+  const rentalId = req.params.rentalId;
+
+  const result = await RentalListingService.deleteByAdminRentalFromDB(
+    adminId as string,
+    rentalId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Rental house delete successfully',
+    data: result,
+  });
+});
+
 export const RentalListingController = {
   createRentalHouse,
   getAllRental,
+  getMyRental,
+  updateRentalByLandlord,
+  updateRentalByAdmin,
+  deleteRentalByLandlord,
+  deleteRentalByAdmin,
 };

@@ -76,7 +76,123 @@ const getAllRentalIntoDB = async (query: Record<string, unknown>) => {
   };
 };
 
+const getMyRentalIntoDB = async (
+  userId: string,
+  query: Record<string, unknown>,
+) => {
+  const rentalQuery = new QueryBuilder(
+    RentalListing.find({ landlordId: userId }).populate('landlordId'),
+    query,
+  );
+  const result = await rentalQuery.modelQuery;
+  const meta = await rentalQuery.countTotal();
+  return {
+    meta,
+    result,
+  };
+};
+
+const updateRentalByLandlordIntoDB = async (
+  landlordId: string, // Authenticated landlord's ID
+  rentalId: string,
+  data: Partial<IRentalListing>,
+) => {
+  // Find rental by ID first (ignoring landlord)
+  const rental = await RentalListing.findById(rentalId);
+  if (!rental) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Rental House not found');
+  } else if (rental.landlordId.toString() !== landlordId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Unauthorized to update this rental',
+    ); // Check if the landlord owns this rental
+  }
+
+  // Update the rental listing
+  const updatedRental = await RentalListing.findByIdAndUpdate(rentalId, data, {
+    new: true, // Return the updated document
+    runValidators: true, // Ensure validation rules apply
+  });
+  return updatedRental;
+};
+
+const updateRentalByAdminIntoDB = async (
+  adminId: string,
+  rentalId: string,
+  data: Partial<IRentalListing>,
+) => {
+  const admin = await User.findById(adminId);
+  if (!admin || admin.role !== 'admin') {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Only admins can update rental listing',
+    );
+  }
+
+  const rental = await RentalListing.findById(rentalId);
+  if (!rental) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Rental house not found');
+  }
+
+  const updateRental = await RentalListing.findByIdAndUpdate(rentalId, data, {
+    new: true,
+    runValidators: true,
+  });
+
+  return updateRental;
+};
+
+const deleteRentalFromDB = async (
+  landlordId: string, // Authenticated landlord's ID
+
+  rentalId: string,
+) => {
+  // Find rental by ID first (ignoring landlord)
+  const rental = await RentalListing.findById(rentalId);
+  if (!rental) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Rental House not found');
+  } else if (rental.landlordId.toString() !== landlordId) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Unauthorized to update this rental',
+    ); // Check if the landlord owns this rental
+  }
+
+  // Update the rental listing
+  const result = await RentalListing.findByIdAndDelete(rentalId);
+
+  return result;
+};
+
+const deleteByAdminRentalFromDB = async (adminId: string, rentalId: string) => {
+  // Fetch the admin user properly
+  const admin = await User.findById(adminId).lean(); // Use .lean() to get a plain JavaScript object
+
+  if (!admin || admin.role !== 'admin') {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Only admins can delete rental listings',
+    );
+  }
+
+  // Find rental by ID first
+  const rental = await RentalListing.findById(rentalId);
+  if (!rental) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Rental house not found');
+  }
+
+  // Delete the rental listing
+  const result = await RentalListing.findByIdAndDelete(rentalId);
+
+  return result;
+};
+
 export const RentalListingService = {
   createRentalHouseIntoDB,
   getAllRentalIntoDB,
+  getMyRentalIntoDB,
+  updateRentalByLandlordIntoDB,
+  updateRentalByAdminIntoDB,
+  deleteRentalFromDB,
+  deleteByAdminRentalFromDB,
 };

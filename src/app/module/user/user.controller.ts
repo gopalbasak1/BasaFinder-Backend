@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import httpStatus from 'http-status-codes';
@@ -41,7 +42,6 @@ const changeActivity = catchAsync(async (req, res) => {
 });
 
 const deleteUser = catchAsync(async (req, res) => {
-  // Check if req.user is defined
   if (!req.user) {
     return sendResponse(res, {
       statusCode: httpStatus.UNAUTHORIZED,
@@ -50,11 +50,10 @@ const deleteUser = catchAsync(async (req, res) => {
       data: null,
     });
   }
+  const { userId } = req.params;
+  const loggedInUserId = req.user.id;
 
-  const { userId } = req.params; // Get the userId from the request params
-  const loggedInUserId = req.user.id; // Get the logged-in user's ID from the request (from auth middleware)
-
-  // Check if the logged-in user is an admin trying to delete themselves
+  // Ensure the admin cannot delete themselves
   if (req.user.role === 'admin' && loggedInUserId === userId) {
     return sendResponse(res, {
       statusCode: httpStatus.BAD_REQUEST,
@@ -64,14 +63,14 @@ const deleteUser = catchAsync(async (req, res) => {
     });
   }
 
-  // Call the service to delete the user
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const result = await UserServices.deleteUserIntoDB(userId);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: 'User deleted successfully',
-    data: result,
+    data: {},
   });
 });
 
@@ -95,6 +94,32 @@ const getMe = catchAsync(async (req, res) => {
   });
 });
 
+const updateUserRole = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  // Expect the new role in the request body, e.g., { role: 'landlord' }
+  const { role: newRole } = req.body;
+
+  // Validate that newRole is provided
+  if (!newRole) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'New role is required',
+      data: null,
+    });
+  }
+
+  // Call the service to update the user role
+  const updatedUser = await UserServices.updateUserRoleIntoDB(userId, newRole);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User role updated successfully',
+    data: updatedUser,
+  });
+});
+
 export const UserController = {
   //createUser,
   getAllUsers,
@@ -102,4 +127,5 @@ export const UserController = {
   changeActivity,
   deleteUser,
   getMe,
+  updateUserRole,
 };

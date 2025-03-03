@@ -35,4 +35,10 @@ router.get(
   UserController.getMe,
 );
 
+router.put(
+  '/admin/users/:userId',
+  auth(USER_ROLE.admin), // Only admin can update roles
+  UserController.updateUserRole,
+);
+
 export const UserRoute = router;
