@@ -7,6 +7,8 @@ import reviewRouter from '../module/Review/review.router';
 import { AddressRoute } from '../module/address/address.route';
 import { RentalRoute } from '../module/rentalhouse/rentalhouse.route';
 
+import { RequestRental } from '../module/request/request.route';
+
 const router = Router();
 
 // app.use('/api/products', bikeRouter); //1. Create a Bike
@@ -40,6 +42,10 @@ const moduleRoutes = [
   {
     path: '/rental',
     route: RentalRoute,
+  },
+  {
+    path: '/rental-request',
+    route: RequestRental,
   },
 ];
 

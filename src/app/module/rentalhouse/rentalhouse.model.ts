@@ -109,7 +109,14 @@ const rentalListingSchema = new Schema<IRentalListing>(
 // ✅ Ensure unique `holding + unitNumber` across the same landlord
 // ✅ Ensure `holding` is unique per address across all landlords
 rentalListingSchema.index(
-  { holding: 1, division: 1, district: 1, upazila: 1, citycorporation: 1 },
+  {
+    holding: 1,
+    unitNumber: 1,
+    division: 1,
+    district: 1,
+    upazila: 1,
+    citycorporation: 1,
+  },
   { unique: true },
 );
 

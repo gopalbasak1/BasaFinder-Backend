@@ -1,0 +1,311 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// rentalRequest.service.ts
+
+import { Types } from 'mongoose';
+
+import httpStatus from 'http-status-codes';
+import { IRentalRequest } from './request.interface';
+import { RentalRequest } from './request.model';
+import AppError from '../../errors/AppErrors';
+import { User } from '../user/user.model';
+import { IRentalListing } from '../rentalhouse/rentalhouse.interface';
+import { requestUtils } from './request.utils';
+import { RentalListing } from '../rentalhouse/rentalhouse.model';
+import QueryBuilder from '../../builder/QueryBuilder';
+import { rentalHouseSearchableFields } from './request.constant';
+
+// Create a new rental request
+const createRentalRequest = async (
+  tenantId: string,
+  payload: Partial<IRentalRequest>,
+) => {
+  const tenant = await User.findById(tenantId);
+
+  if (!tenant) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+  const createRequest = await RentalRequest.create({
+    ...payload,
+    tenantId,
+  });
+
+  return createRequest;
+};
+
+// Retrieve all rental requests submitted by a tenant
+const getRentalRequestsByTenant = async (
+  tenantId: string,
+  query: Record<string, unknown>,
+) => {
+  // Ensure that only requests belonging to the tenant are queried
+  const baseQuery = RentalRequest.find({
+    tenantId: new Types.ObjectId(tenantId),
+  })
+    .populate({
+      path: 'listingId',
+      populate: {
+        path: 'landlordId',
+        select: 'name email phoneNumber',
+      },
+    })
+    .populate({
+      path: 'tenantId',
+      select: 'name email phoneNumber',
+    });
+
+  // Use QueryBuilder to add search, filter, sort, fields, and pagination based on req.query
+  const requestsQuery = new QueryBuilder(baseQuery, query)
+    .search(rentalHouseSearchableFields)
+    .filter()
+    .sort()
+    .fields()
+    .paginate();
+
+  const result = await requestsQuery.modelQuery;
+  const meta = await requestsQuery.countTotal();
+
+  // If no requests remain, throw an AppError.
+  if (result.length === 0) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No rental requests found for your account',
+    );
+  }
+
+  return { meta, result };
+};
+
+// Retrieve all rental requests for listings owned by a landlord
+const getRentalRequestsByLandlord = async (
+  landlordId: string,
+  query: Record<string, unknown>,
+) => {
+  // Build the base query with population for listing and tenant details.
+  const baseQuery = RentalRequest.find()
+    .populate({
+      path: 'listingId',
+      // Only populate listings where landlordId matches the given landlordId.
+      match: { landlordId: new Types.ObjectId(landlordId) },
+      populate: {
+        path: 'landlordId',
+        select: 'name email phoneNumber',
+      },
+    })
+    .populate({
+      path: 'tenantId',
+      select: 'name email phoneNumber',
+    });
+
+  // Apply search, filter, sort, paginate, and fields using QueryBuilder
+  const rentalQuery = new QueryBuilder(baseQuery, query)
+    .search(rentalHouseSearchableFields) // e.g., ['holding', 'address', 'description']
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await rentalQuery.modelQuery;
+  const meta = await rentalQuery.countTotal();
+
+  // Filter out rental requests where listingId is null.
+  const filteredRequests = result.filter((req) => req.listingId !== null);
+
+  if (filteredRequests.length === 0) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No rental requests found for your listings',
+    );
+  }
+
+  return { meta, result: filteredRequests };
+};
+// Update a rental request (for landlord approval/rejection, setting landlordPhone, paymentStatus, etc.)
+const updateRentalRequest = async (
+  requestId: string,
+  updateData: Partial<IRentalRequest>,
+) => {
+  const updatedRequest = await RentalRequest.findByIdAndUpdate(
+    requestId,
+    updateData,
+    { new: true },
+  );
+  if (!updatedRequest) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Rental request not found');
+  }
+  return updatedRequest;
+};
+
+const payRentalRequestIntoDB = async (
+  email: string,
+  payload: any,
+  client_ip: string,
+) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+  if (user.role === 'landlord' || user.role === 'admin') {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      `${user.role} can't place rental request`,
+    );
+  }
+
+  const rentalRequest = await RentalRequest.findById(
+    payload.rentalRequestId,
+  ).populate<{ listingId: IRentalListing }>('listingId');
+
+  if (!rentalRequest) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Rental request not found');
+  }
+
+  // Ensure that only the tenant who made the request can pay
+  if (rentalRequest.tenantId.toString() !== user._id.toString()) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'You can only pay for your own rental request',
+    );
+  }
+
+  // Check if the request is approved before allowing payment
+  if (rentalRequest.status !== 'approved') {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'Payment can only be made for approved rental request',
+    );
+  }
+
+  // Check if the listing is still available before allowing payment
+  if (!rentalRequest.listingId.isAvailable) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'This listing is no longer available for rent',
+    );
+  }
+
+  const rentAmount = rentalRequest.listingId.rentAmount;
+
+  const shurjopayPayload = {
+    amount: Number(rentAmount),
+    order_id: rentalRequest._id,
+    currency: 'BDT',
+    customer_name: user.name,
+    customer_address: 'N/A',
+    customer_email: user.email,
+    customer_phone: 'N/A',
+    customer_city: 'N/A',
+    client_ip,
+  };
+
+  const payment = await requestUtils.makePayment(shurjopayPayload);
+
+  if (payment?.transactionStatus) {
+    await RentalRequest.updateOne({
+      transaction: {
+        id: payment.sp_order_id,
+        transactionStatus: payment.transactionStatus,
+      },
+    });
+  }
+  return payment.checkout_url;
+};
+
+const verifyPayment = async (order_id: string) => {
+  // Verify the payment using your requestUtils
+  const verifiedPayment = await requestUtils.verifyPaymentAsync(order_id);
+
+  if (verifiedPayment.length) {
+    const paymentData = verifiedPayment[0];
+
+    // Check if the bank status indicates success
+    if (paymentData.bank_status === 'Success') {
+      // Update the rental request: set paymentStatus to 'paid'
+      const updatedRequest = await RentalRequest.findOneAndUpdate(
+        { 'transaction.id': order_id },
+        {
+          $set: {
+            'transaction.bank_status': paymentData.bank_status,
+            'transaction.sp_code': paymentData.sp_code,
+            'transaction.sp_message': paymentData.sp_message,
+            'transaction.transactionStatus': paymentData.transaction_status,
+            'transaction.method': paymentData.method,
+            'transaction.date_time': paymentData.date_time,
+            paymentStatus: 'paid',
+          },
+        },
+        { new: true },
+      );
+
+      // If the rental request is updated, update the listing to mark it as unavailable
+      if (updatedRequest && updatedRequest.listingId) {
+        await RentalListing.findByIdAndUpdate(updatedRequest.listingId, {
+          isAvailable: false,
+        });
+      }
+    } else {
+      // If payment is not successful, update the transaction fields and leave paymentStatus as 'pending'
+      await RentalRequest.findOneAndUpdate(
+        { 'transaction.id': order_id },
+        {
+          $set: {
+            'transaction.bank_status': paymentData.bank_status,
+            'transaction.sp_code': paymentData.sp_code,
+            'transaction.sp_message': paymentData.sp_message,
+            'transaction.transactionStatus': paymentData.transaction_status,
+            'transaction.method': paymentData.method,
+            'transaction.date_time': paymentData.date_time,
+            paymentStatus: 'pending',
+          },
+        },
+      );
+    }
+  }
+  return verifiedPayment;
+};
+
+const getAllRentalRequestIntoDBByAdmin = async (
+  userId: string,
+  query: Record<string, unknown>,
+) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  if (user.role !== 'admin') {
+    throw new AppError(httpStatus.FORBIDDEN, 'Your are not permitted');
+  }
+
+  const requestQuery = new QueryBuilder(
+    RentalRequest.find()
+      .populate({
+        path: 'listingId',
+        populate: 'landlordId',
+      })
+      .populate('tenantId'),
+    query,
+  )
+    .search(rentalHouseSearchableFields)
+    .filter()
+    .sort()
+    .paginate()
+    .fields();
+
+  const result = await requestQuery.modelQuery;
+  const meta = await requestQuery.countTotal();
+
+  return {
+    meta,
+    result,
+  };
+};
+
+export const RentalRequestService = {
+  createRentalRequest,
+  getRentalRequestsByTenant,
+  getRentalRequestsByLandlord,
+  updateRentalRequest,
+  payRentalRequestIntoDB,
+  verifyPayment,
+  getAllRentalRequestIntoDBByAdmin,
+};

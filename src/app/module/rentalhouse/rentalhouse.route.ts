@@ -54,4 +54,11 @@ router.delete(
   RentalListingController.deleteRentalByAdmin,
 );
 
+router.get(
+  '/listings/:rentalId',
+  auth(USER_ROLE.admin, USER_ROLE.landlord, USER_ROLE.tenant), // Only admin can update
+
+  RentalListingController.getSingleRental,
+);
+
 export const RentalRoute = router;

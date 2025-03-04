@@ -120,6 +120,18 @@ const updateUserRole = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleUser = catchAsync(async (req, res) => {
+  const { userId } = req.params;
+  const result = await UserServices.getSingleUserIntoDB(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'User retrieved successfully',
+    data: result,
+  });
+});
+
 export const UserController = {
   //createUser,
   getAllUsers,
@@ -128,4 +140,5 @@ export const UserController = {
   deleteUser,
   getMe,
   updateUserRole,
+  getSingleUser,
 };

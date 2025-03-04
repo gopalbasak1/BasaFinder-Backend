@@ -105,6 +105,17 @@ const updateUserRoleIntoDB = async (
   return updatedUser;
 };
 
+const getSingleUserIntoDB = async (userId: string) => {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found !');
+  }
+  if (user.isActive === false) {
+    throw new AppError(httpStatus.FORBIDDEN, 'User is in-active');
+  }
+  return user;
+};
+
 export const UserServices = {
   // createUserIntoDB,
   getAllUsersFromDB,
@@ -113,4 +124,5 @@ export const UserServices = {
   getMe,
   deleteUserIntoDB,
   updateUserRoleIntoDB,
+  getSingleUserIntoDB,
 };

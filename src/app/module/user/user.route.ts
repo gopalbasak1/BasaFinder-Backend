@@ -41,4 +41,10 @@ router.put(
   UserController.updateUserRole,
 );
 
+router.get(
+  '/:userId',
+  auth(USER_ROLE.admin, USER_ROLE.landlord, USER_ROLE.tenant), // Only admin can update roles
+  UserController.getSingleUser,
+);
+
 export const UserRoute = router;

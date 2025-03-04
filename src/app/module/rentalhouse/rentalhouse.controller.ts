@@ -136,6 +136,18 @@ const deleteRentalByAdmin = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleRental = catchAsync(async (req, res) => {
+  const { rentalId } = req.params;
+  const result = await RentalListingService.getSingleRentalIntoDB(rentalId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Rental house retrieved successfully',
+    data: result,
+  });
+});
+
 export const RentalListingController = {
   createRentalHouse,
   getAllRental,
@@ -144,4 +156,5 @@ export const RentalListingController = {
   updateRentalByAdmin,
   deleteRentalByLandlord,
   deleteRentalByAdmin,
+  getSingleRental,
 };

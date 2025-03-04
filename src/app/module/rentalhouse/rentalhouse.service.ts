@@ -70,6 +70,13 @@ const getAllRentalIntoDB = async (query: Record<string, unknown>) => {
   const result = await rentalQuery.modelQuery;
   const meta = await rentalQuery.countTotal();
 
+  if (result.length === 0) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No rental listings found for your account',
+    );
+  }
+
   return {
     meta,
     result,
@@ -86,6 +93,12 @@ const getMyRentalIntoDB = async (
   );
   const result = await rentalQuery.modelQuery;
   const meta = await rentalQuery.countTotal();
+  if (result.length === 0) {
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      'No rental listings found for this landlord',
+    );
+  }
   return {
     meta,
     result,
@@ -187,6 +200,14 @@ const deleteByAdminRentalFromDB = async (adminId: string, rentalId: string) => {
   return result;
 };
 
+const getSingleRentalIntoDB = async (rentalId: string) => {
+  const result = await RentalListing.findById(rentalId);
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Rental House not found');
+  }
+  return result;
+};
+
 export const RentalListingService = {
   createRentalHouseIntoDB,
   getAllRentalIntoDB,
@@ -195,4 +216,5 @@ export const RentalListingService = {
   updateRentalByAdminIntoDB,
   deleteRentalFromDB,
   deleteByAdminRentalFromDB,
+  getSingleRentalIntoDB,
 };
