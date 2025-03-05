@@ -13,23 +13,51 @@ import { requestUtils } from './request.utils';
 import { RentalListing } from '../rentalhouse/rentalhouse.model';
 import QueryBuilder from '../../builder/QueryBuilder';
 import { rentalHouseSearchableFields } from './request.constant';
+import { sendEmail } from '../../utils/sendEmail';
 
 // Create a new rental request
 const createRentalRequest = async (
   tenantId: string,
   payload: Partial<IRentalRequest>,
 ) => {
+  // Find tenant and create the rental request
   const tenant = await User.findById(tenantId);
-
   if (!tenant) {
     throw new AppError(httpStatus.NOT_FOUND, 'Tenant not found');
   }
-  const createRequest = await RentalRequest.create({
+
+  const newRequest = await RentalRequest.create({
     ...payload,
     tenantId,
   });
 
-  return createRequest;
+  // Populate listing to get landlord info
+  const populatedRequest = await newRequest.populate([
+    {
+      path: 'listingId',
+      model: 'RentalListing',
+      populate: {
+        path: 'landlordId',
+        model: 'User', // Assuming landlords are stored in the User model
+        select: 'email name',
+      },
+    },
+    {
+      path: 'tenantId',
+    },
+  ]);
+
+  // Extract landlord details
+  const listing = populatedRequest.listingId as any; // Explicitly cast as any to access properties
+  const landlord = listing?.landlordId as any;
+
+  if (landlord && landlord.email) {
+    const subject = 'New Rental Request Received';
+    const text = `Hello ${landlord.name},\n\nA new rental request has been submitted for your listing (${listing.holding}). Please review the request in your dashboard.\n\nThank you,\nBasa Finder Team`;
+    await sendEmail(landlord.email, subject, text);
+  }
+
+  return newRequest;
 };
 
 // Retrieve all rental requests submitted by a tenant
@@ -128,10 +156,32 @@ const updateRentalRequest = async (
     requestId,
     updateData,
     { new: true },
-  );
+  ).populate([
+    {
+      path: 'tenantId',
+      select: 'email name',
+    },
+    {
+      path: 'listingId',
+      select: 'holding', // Assuming 'title' is the correct field for the listing's name
+    },
+  ]);
+
   if (!updatedRequest) {
     throw new AppError(httpStatus.NOT_FOUND, 'Rental request not found');
   }
+
+  // Ensure tenant exists before sending an email
+  const tenant = updatedRequest.tenantId as { email?: string; name?: string };
+  const listing = updatedRequest.listingId as { holding?: string };
+
+  if (tenant?.email) {
+    const subject = 'Your Rental Request Has Been Updated';
+    const text = `Hello ${tenant.name},\n\nYour rental request for listing "${listing.holding}" has been updated to "${updatedRequest.status}".\n\nPlease check your dashboard for more details.\n\nThank you,\nBasa Finder Team`;
+
+    await sendEmail(tenant.email, subject, text);
+  }
+
   return updatedRequest;
 };
 
