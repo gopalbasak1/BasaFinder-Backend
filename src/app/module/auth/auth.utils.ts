@@ -10,6 +10,7 @@ export const createToken = (
     name?: string;
     userId?: object;
     isActive?: boolean;
+    isListings?: boolean;
   },
   secret: string,
   expiresIn: string | number, // Ensure this can be a string or a number

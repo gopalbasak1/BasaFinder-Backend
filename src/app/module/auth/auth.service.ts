@@ -8,7 +8,7 @@ import { TLoginUser } from './auth.interface';
 import { createToken, verifyToken } from './auth.utils';
 import { JwtPayload } from 'jsonwebtoken';
 
-const registerFromDB = async (password: string, payload: TUser) => {
+const registerFromDB = async (payload: TUser) => {
   const result = await User.create(payload);
 
   return result;
@@ -66,6 +66,7 @@ const login = async (payload: TLoginUser) => {
     image: user?.image,
     name: user?.name,
     isActive: user?.isActive,
+    isListings: user?.isListings,
   };
 
   const accessToken = createToken(
@@ -213,6 +214,7 @@ const refreshToken = async (token: string) => {
     phoneNumber: user?.phoneNumber,
     role: user?.role,
     image: user?.image,
+    isListings: user?.isListings,
   };
 
   // Create the new access token

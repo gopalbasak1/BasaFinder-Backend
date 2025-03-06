@@ -54,7 +54,15 @@ const createRentalHouseIntoDB = async (
   }
 
   // Create the rental listing
-  return await RentalListing.create({ ...payload, landlordId: landlord._id });
+  const newRental = await RentalListing.create({
+    ...payload,
+    landlordId: landlord._id,
+  });
+
+  // Ensure the landlord's `isListings` is set to true
+  await User.findByIdAndUpdate(landlord._id, { isListings: false });
+
+  return newRental;
 };
 
 const getAllRentalIntoDB = async (query: Record<string, unknown>) => {
@@ -155,26 +163,28 @@ const updateRentalByAdminIntoDB = async (
   return updateRental;
 };
 
-const deleteRentalFromDB = async (
-  landlordId: string, // Authenticated landlord's ID
-
-  rentalId: string,
-) => {
-  // Find rental by ID first (ignoring landlord)
+const deleteRentalFromDB = async (landlordId: string, rentalId: string) => {
   const rental = await RentalListing.findById(rentalId);
   if (!rental) {
     throw new AppError(httpStatus.NOT_FOUND, 'Rental House not found');
-  } else if (rental.landlordId.toString() !== landlordId) {
+  }
+  if (rental.landlordId.toString() !== landlordId) {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      'Unauthorized to update this rental',
-    ); // Check if the landlord owns this rental
+      'Unauthorized to delete this rental',
+    );
   }
 
-  // Update the rental listing
-  const result = await RentalListing.findByIdAndDelete(rentalId);
+  await RentalListing.findByIdAndDelete(rentalId);
 
-  return result;
+  // Check if the landlord has any other rental listings
+  const remainingListings = await RentalListing.findOne({ landlordId });
+  if (!remainingListings) {
+    // If no rentals left, set isListings to false
+    await User.findByIdAndUpdate(landlordId, { isListings: true });
+  }
+
+  return { message: 'Rental deleted successfully' };
 };
 
 const deleteByAdminRentalFromDB = async (adminId: string, rentalId: string) => {
@@ -195,9 +205,18 @@ const deleteByAdminRentalFromDB = async (adminId: string, rentalId: string) => {
   }
 
   // Delete the rental listing
-  const result = await RentalListing.findByIdAndDelete(rentalId);
+  await RentalListing.findByIdAndDelete(rentalId);
 
-  return result;
+  // Check if the landlord has any other rental listings
+  const remainingListings = await RentalListing.findOne({
+    landlordId: rental.landlordId,
+  });
+  if (!remainingListings) {
+    // If no rentals left, set isListings to false
+    await User.findByIdAndUpdate(rental.landlordId, { isListings: true });
+  }
+
+  return { message: 'Rental deleted successfully' };
 };
 
 const getSingleRentalIntoDB = async (rentalId: string) => {

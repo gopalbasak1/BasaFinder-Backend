@@ -5,8 +5,9 @@ import { AuthServices } from './auth.service';
 import config from '../../config';
 
 const register = catchAsync(async (req, res) => {
-  const { password, user: userData } = req.body;
-  const result = await AuthServices.registerFromDB(password, userData);
+  //console.log(req.body);
+  const { user: userData } = req.body;
+  const result = await AuthServices.registerFromDB(userData);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
