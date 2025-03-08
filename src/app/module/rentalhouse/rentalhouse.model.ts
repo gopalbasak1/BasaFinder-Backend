@@ -56,7 +56,7 @@ const rentalListingSchema = new Schema<IRentalListing>(
       type: Number,
       required: true,
     },
-    images: {
+    imageUrls: {
       type: [String],
       default: [],
     },

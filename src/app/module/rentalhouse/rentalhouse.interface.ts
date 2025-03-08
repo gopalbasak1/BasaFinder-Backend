@@ -33,7 +33,7 @@ export type TDistricts =
   | 'Gopalganj'
   | 'Habiganj'
   | 'Jashore'
-  | 'Jhalokati'
+  | 'Jhalakathi'
   | 'Jhenaidah'
   | 'Joypurhat'
   | 'Khagrachhari'
@@ -55,7 +55,7 @@ export type TDistricts =
   | 'Narayanganj'
   | 'Narsingdi'
   | 'Natore'
-  | 'Netrakona'
+  | 'Netrokona'
   | 'Noakhali'
   | 'Nawabganj'
   | 'Pabna'
@@ -80,7 +80,7 @@ export interface IRentalListing extends Document {
   holding: string;
   address: string;
   district: TDistricts;
-  postalCode?: string;
+  postalCode?: number;
   upazila?: string;
   unitNumber: string;
   citycorporation?: string;
@@ -89,7 +89,7 @@ export interface IRentalListing extends Document {
   description: string;
   rentAmount: number;
   bedrooms: number;
-  images: string[]; // Array of image URLs
+  imageUrls: string[]; // Array of image URLs
   availableFrom: Date;
   isAvailable?: boolean;
   category: 'family' | 'bachelor';
