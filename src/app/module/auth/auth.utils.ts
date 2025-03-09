@@ -6,7 +6,7 @@ export const createToken = (
     email: string;
     phoneNumber: string;
     role: string;
-    image?: string | undefined;
+    imageUrls?: string[] | undefined;
     name?: string;
     userId?: object;
     isActive?: boolean;

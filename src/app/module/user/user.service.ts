@@ -29,13 +29,20 @@ const updateUserIntoDB = async (id: string, data: Partial<TUser> | any) => {
   // 🔥 Extract the actual user data if nested inside "user"
   const updateData = data.user ? { ...data.user } : { ...data };
 
+  // Check if email or phone number is changing
+  const isEmailChanged =
+    updateData.email && updateData.email !== existingUser.email;
+  const isPhoneChanged =
+    updateData.phoneNumber &&
+    updateData.phoneNumber !== existingUser.phoneNumber;
+
   // 🔹 Ensure nested updates work correctly
   const updatedUser = await User.findByIdAndUpdate(id, updateData, {
     new: true, // Return updated document
     runValidators: true, // Ensure validation rules apply
   });
 
-  return updatedUser;
+  return { updatedUser, shouldLogout: isEmailChanged || isPhoneChanged };
 };
 
 const changeActivityIntoDB = async (

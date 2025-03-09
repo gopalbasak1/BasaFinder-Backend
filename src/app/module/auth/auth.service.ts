@@ -63,7 +63,7 @@ const login = async (payload: TLoginUser) => {
     email: user?.email,
     phoneNumber: user?.phoneNumber,
     role: user?.role,
-    image: user?.image,
+    imageUrls: user?.imageUrls,
     name: user?.name,
     isActive: user?.isActive,
     isListings: user?.isListings,
@@ -213,7 +213,7 @@ const refreshToken = async (token: string) => {
     email: user?.email,
     phoneNumber: user?.phoneNumber,
     role: user?.role,
-    image: user?.image,
+    imageUrls: user?.imageUrls,
     isListings: user?.isListings,
   };
 
