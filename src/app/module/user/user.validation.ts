@@ -25,7 +25,7 @@ const updateUser = z.object({
       phoneNumber: z
         .string({ required_error: 'Phone number is required' })
         .optional(),
-      image: z.string().optional(),
+      imageUrls: z.string().optional(),
     }),
   }),
 });

@@ -8,7 +8,7 @@ export type TUser = {
   role: 'admin' | 'landlord' | 'tenant';
   email: string;
   phoneNumber: string;
-  image?: string;
+  imageUrls?: string[];
   password: string;
   needsPasswordChange: boolean;
   isListings?: boolean;

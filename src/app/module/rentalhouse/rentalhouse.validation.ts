@@ -39,7 +39,7 @@ const updateRentalListingValidationSchema = z.object({
     district: z.enum([...Districts] as [string, ...string[]]),
 
     unitNumber: z.string().min(1, 'Unit number is required'),
-    postalCode: z.string().optional(),
+    postalCode: z.number().optional(),
     upazila: z.string().optional(),
     citycorporation: z.string().optional(),
     division: z.enum([...Divisions] as [string, ...string[]]),

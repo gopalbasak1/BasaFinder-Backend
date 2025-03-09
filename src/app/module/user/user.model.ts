@@ -30,8 +30,9 @@ const userSchema = new Schema<TUser, UserModel>(
       required: true,
       select: 0,
     },
-    image: {
-      type: String,
+    imageUrls: {
+      type: [String],
+      default: [],
     },
     needsPasswordChange: {
       type: Boolean,

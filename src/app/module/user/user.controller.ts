@@ -70,7 +70,7 @@ const deleteUser = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'User deleted successfully',
-    data: {},
+    data: null,
   });
 });
 

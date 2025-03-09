@@ -55,19 +55,15 @@ const deleteUserIntoDB = async (userId: string) => {
     throw new Error('User not found');
   }
 
-  // If the user is a landlord, we need to delete or update all of their rental houses
+  // If the user is a landlord, delete their rental listings
   if (user.role === 'landlord') {
-    // Option 1: Delete all rental houses created by this landlord
     await RentalListing.deleteMany({ landlordId: userId });
-
-    await User.findByIdAndDelete(userId);
-    return {
-      message:
-        'Landlord deleted successfully along with all their rental houses',
-    };
   }
 
-  return user;
+  // ✅ Now deletes landlords, tenants, and admins (except themselves)
+  await User.findByIdAndDelete(userId);
+
+  return { message: `${user.role} deleted successfully` };
 };
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
