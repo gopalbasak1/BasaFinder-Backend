@@ -61,4 +61,6 @@ router.get(
   RentalListingController.getSingleRental,
 );
 
+router.get('/listings', RentalListingController.getAllRentalListings);
+
 export const RentalRoute = router;

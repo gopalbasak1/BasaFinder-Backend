@@ -20,10 +20,30 @@ const createRentalRequest = async (
   tenantId: string,
   payload: Partial<IRentalRequest>,
 ) => {
+  if (!payload.rentalDuration || payload.rentalDuration < 1) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Rental duration must be at least 1 month',
+    );
+  }
   // Find tenant and create the rental request
   const tenant = await User.findById(tenantId);
   if (!tenant) {
     throw new AppError(httpStatus.NOT_FOUND, 'Tenant not found');
+  }
+
+  // Check if the tenant has already requested this listing
+  const existingRequest = await RentalRequest.findOne({
+    tenantId,
+    listingId: payload.listingId, // Ensure same listing
+  });
+
+  // If a request exists and it's not rejected, prevent duplicate request
+  if (existingRequest && existingRequest.status !== 'rejected') {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You have already submitted a rental request for this listing.',
+    );
   }
 
   const newRequest = await RentalRequest.create({
@@ -53,7 +73,10 @@ const createRentalRequest = async (
 
   if (landlord && landlord.email) {
     const subject = 'New Rental Request Received';
-    const text = `Hello ${landlord.name},\n\nA new rental request has been submitted for your listing (${listing.holding}). Please review the request in your dashboard.\n\nThank you,\nBasa Finder Team`;
+    const text = `Hello ${landlord.name},\n\nA new rental request has been submitted for your listing (${listing.holding}).\n\n📩 Tenant Message: "${newRequest?.message}".\n\nPlease review the request in your dashboard.\n\nThank you,\nBasa Finder Team
+    
+
+    `;
     await sendEmail(landlord.email, subject, text);
   }
 
@@ -163,7 +186,11 @@ const updateRentalRequest = async (
     },
     {
       path: 'listingId',
-      select: 'holding', // Assuming 'title' is the correct field for the listing's name
+      select: 'holding landlordId',
+      populate: {
+        path: 'landlordId', // Populate landlord details
+        select: 'name email phoneNumber',
+      }, // Assuming 'title' is the correct field for the listing's name
     },
   ]);
 
@@ -173,11 +200,14 @@ const updateRentalRequest = async (
 
   // Ensure tenant exists before sending an email
   const tenant = updatedRequest.tenantId as { email?: string; name?: string };
-  const listing = updatedRequest.listingId as { holding?: string };
+  const listing = updatedRequest.listingId as {
+    holding?: string;
+    landlordId?: any;
+  };
 
   if (tenant?.email) {
     const subject = 'Your Rental Request Has Been Updated';
-    const text = `Hello ${tenant.name},\n\nYour rental request for listing "${listing.holding}" has been updated to "${updatedRequest.status}".\n\nPlease check your dashboard for more details.\n\nThank you,\nBasa Finder Team`;
+    const text = `Hello ${tenant.name},\n\nYour rental request for listing "${listing.holding}" has been updated to "${updatedRequest.status}".\n\nLandlord Contact: ${listing.landlordId?.name} - ${listing.landlordId?.phoneNumber}\n\nPlease check your dashboard for more details.\n\nThank you,\nBasa Finder Team`;
 
     await sendEmail(tenant.email, subject, text);
   }
@@ -194,10 +224,11 @@ const payRentalRequestIntoDB = async (
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
-  if (user.role === 'landlord' || user.role === 'admin') {
+
+  if (user.role !== 'tenant') {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      `${user.role} can't place rental request`,
+      'Only tenants can pay for rental requests',
     );
   }
 
@@ -233,7 +264,8 @@ const payRentalRequestIntoDB = async (
     );
   }
 
-  const rentAmount = rentalRequest.listingId.rentAmount;
+  const rentAmount =
+    rentalRequest.listingId.rentAmount * rentalRequest.rentalDuration;
 
   const shurjopayPayload = {
     amount: Number(rentAmount),

@@ -11,6 +11,7 @@ export interface IRentalRequest extends Document {
   landlordPhone?: string; // Landlord's phone number (set upon approval)
   paymentStatus?: PaymentStatus;
   message: string; // Detailed text (move-in dates, rental duration, special requirements)
+  rentalDuration: number;
   transaction: {
     id: string;
     transactionStatus: string;

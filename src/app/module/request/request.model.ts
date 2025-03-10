@@ -23,6 +23,7 @@ const rentalRequestSchema = new Schema<IRentalRequest>(
     landlordPhone: {
       type: String,
     },
+    rentalDuration: { type: Number, required: true },
     paymentStatus: {
       type: String,
       enum: ['pending', 'paid'],

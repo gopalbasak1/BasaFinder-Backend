@@ -6,7 +6,6 @@ import httpStatus from 'http-status-codes';
 import { RentalRequestService } from './request.service';
 
 const createRentalRequest = catchAsync(async (req: Request, res: Response) => {
-  // Ensure req.user is set by auth middleware
   const tenantId = req.user?.id;
   if (!tenantId) {
     return sendResponse(res, {
@@ -16,11 +15,23 @@ const createRentalRequest = catchAsync(async (req: Request, res: Response) => {
       data: null,
     });
   }
-  const payload = req.body;
-  const result = await RentalRequestService.createRentalRequest(
-    tenantId,
-    payload,
-  );
+
+  const { rentalDuration, ...payload } = req.body;
+
+  if (!rentalDuration || rentalDuration <= 0) {
+    return sendResponse(res, {
+      statusCode: httpStatus.BAD_REQUEST,
+      success: false,
+      message: 'Rental duration must be greater than 0 months',
+      data: null,
+    });
+  }
+
+  const result = await RentalRequestService.createRentalRequest(tenantId, {
+    rentalDuration,
+    ...payload,
+  });
+
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
