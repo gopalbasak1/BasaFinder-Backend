@@ -23,6 +23,7 @@ const rentalRequestSchema = new Schema<IRentalRequest>(
     landlordPhone: {
       type: String,
     },
+    moveInDate: { type: Date },
     rentalDuration: { type: Number, required: true },
     paymentStatus: {
       type: String,

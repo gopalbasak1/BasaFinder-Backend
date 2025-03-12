@@ -16,19 +16,18 @@ const createRentalRequest = catchAsync(async (req: Request, res: Response) => {
     });
   }
 
-  const { rentalDuration, ...payload } = req.body;
+  const { ...payload } = req.body;
 
-  if (!rentalDuration || rentalDuration <= 0) {
-    return sendResponse(res, {
-      statusCode: httpStatus.BAD_REQUEST,
-      success: false,
-      message: 'Rental duration must be greater than 0 months',
-      data: null,
-    });
-  }
+  // if (!rentalDuration || rentalDuration <= 0) {
+  //   return sendResponse(res, {
+  //     statusCode: httpStatus.BAD_REQUEST,
+  //     success: false,
+  //     message: 'Rental duration must be greater than 0 months',
+  //     data: null,
+  //   });
+  // }
 
   const result = await RentalRequestService.createRentalRequest(tenantId, {
-    rentalDuration,
     ...payload,
   });
 
@@ -93,6 +92,7 @@ const updateRentalRequest = catchAsync(async (req, res) => {
 });
 
 const payRentalRequest = catchAsync(async (req, res) => {
+  //console.log('controller', req.body);
   const email = req.user?.email;
   const payload = req.body;
   const result = await RentalRequestService.payRentalRequestIntoDB(
@@ -100,7 +100,7 @@ const payRentalRequest = catchAsync(async (req, res) => {
     payload,
     req.ip!,
   );
-
+  //console.log('result', result);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

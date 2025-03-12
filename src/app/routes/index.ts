@@ -6,6 +6,8 @@ import { AddressRoute } from '../module/address/address.route';
 import { RentalRoute } from '../module/rentalhouse/rentalhouse.route';
 
 import { RequestRental } from '../module/request/request.route';
+import { TestimonialRouter } from '../module/testimonial/testimonial.route';
+import { TipsRouter } from '../module/tips/tips.route';
 
 const router = Router();
 
@@ -36,6 +38,14 @@ const moduleRoutes = [
   {
     path: '/rental-request',
     route: RequestRental,
+  },
+  {
+    path: '/testimonial',
+    route: TestimonialRouter,
+  },
+  {
+    path: '/tips',
+    route: TipsRouter,
   },
 ];
 

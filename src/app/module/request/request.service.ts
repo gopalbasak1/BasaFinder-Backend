@@ -26,6 +26,10 @@ const createRentalRequest = async (
       'Rental duration must be at least 1 month',
     );
   }
+
+  if (!payload.moveInDate) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Move-in date is required');
+  }
   // Find tenant and create the rental request
   const tenant = await User.findById(tenantId);
   if (!tenant) {
@@ -220,6 +224,10 @@ const payRentalRequestIntoDB = async (
   payload: any,
   client_ip: string,
 ) => {
+  // console.log(
+  //   '🔍 Received rentalRequestId By services:',
+  //   payload.rentalRequestId,
+  // );
   const user = await User.findOne({ email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -274,7 +282,7 @@ const payRentalRequestIntoDB = async (
     customer_name: user.name,
     customer_address: 'N/A',
     customer_email: user.email,
-    customer_phone: 'N/A',
+    customer_phone: user.phoneNumber,
     customer_city: 'N/A',
     client_ip,
   };

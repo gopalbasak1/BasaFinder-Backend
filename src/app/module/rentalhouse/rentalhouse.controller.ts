@@ -23,7 +23,7 @@ const createRentalHouse = catchAsync(async (req: Request, res: Response) => {
     { email: user.email, phoneNumber: user.phoneNumber },
     payload,
   );
-  console.log(result);
+  //console.log(result);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,

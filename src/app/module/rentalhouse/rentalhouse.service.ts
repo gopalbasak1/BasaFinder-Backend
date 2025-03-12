@@ -98,7 +98,12 @@ const getMyRentalIntoDB = async (
   const rentalQuery = new QueryBuilder(
     RentalListing.find({ landlordId: userId }).populate('landlordId'),
     query,
-  );
+  )
+    .search(rentalHouseSearchableFields)
+    .filter()
+    .sort()
+    .paginate()
+    .fields(); // ✅ Apply pagination before executing query
   const result = await rentalQuery.modelQuery;
   const meta = await rentalQuery.countTotal();
   if (result.length === 0) {
