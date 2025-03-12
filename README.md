@@ -1,6 +1,6 @@
-# Bike Store API
+# BasaFinder API
 
-A robust and scalable REST API for managing bikes and orders, built using TypeScript, jwt, password salt, Node.js, Express, Mongoose and MongoDB.
+BasaFinder is a full-stack web application providing a smart rental housing solution. The backend is built with Node.js, Express.js, and MongoDB, implementing JWT authentication, role-based access control, and secure password hashing using bcrypt. It facilitates rental listings, user management, rental requests, and payment handling.
 
 ## Live Deployment Link
 
@@ -8,16 +8,34 @@ A robust and scalable REST API for managing bikes and orders, built using TypeSc
 
 ## Features
 
-- 🛒 **Bike Management:** Add, update, delete, and fetch bike details with strict validations.
-- 👤 **User Management:** Add, update, and fetch user details securely.
-- 🌟 **Review System:** Add and fetch customer reviews.
-- 🛍️ **Order Management:** Create and manage orders with price calculations.
-- 🔒 **Secure Authentication:** Uses JWT tokens and password hashing with bcrypt.
-- 💳 **Secure Payment System:** Integration with ShurjoPay to handle payments securely and efficiently.
-- Validation: Uses Generic for schema validation and ensures data integrity.
-- TypeScript Support: Full TypeScript support for type safety and better developer experience.
-- Environment Configuration: Manage sensitive information securely using dotenv.
-- Code Quality: Integrated ESLint and Prettier for consistent code styling and linting.
+- 🛒 **Authentication & Authorization:**
+- Custom JWT-based authentication
+
+- Password hashing using bcrypt
+
+- Role-based access control (Admin, Landlord, Tenant)
+
+- 🛒 **CRUD Operations:**
+- Manage rental listings
+
+- Submit and process rental requests
+
+- Admin controls for user and listing management
+
+- 👤 **Rental Management:**
+- Submit and process rental requests
+
+- Admin controls for user and listing management
+
+- 🌟 **Search & Filter:**
+- Search by location, price range, and district, division
+
+- 💳 **Payments:**
+- Payment integration after request approval (ShurjoPay)
+
+- 📨 **Email Notifications:**
+- Automated email updates for rental requests.
+
 - Development Tools:
   - Live reload with ts-node-dev.
   - Build with tsc.
@@ -47,7 +65,7 @@ This project integrates **SurjoPay**, a reliable and secure payment gateway, to 
 
 ### Payment Flow
 
-1. Customer places an order via `/api/orders`.
+1. Customer places an request via `/api/rental-request/pay-rental-request`.
 2. SurjoPay processes the payment.
 3. Upon successful payment, the order is marked as "Paid" in the system.
 4. Payment confirmation or failure is handled through secure callbacks.
@@ -65,7 +83,7 @@ Ensure you have the following installed:
 ## 1 Clone the Repository
 
 ```bash
-git clone https://github.com/gopalbasak1/Bike-Store-Server.git
+git clone https://github.com/gopalbasak1/BasaFinder-Backend.git
 cd Bike-Store-Server
 ```
 
@@ -112,19 +130,53 @@ SURJOPAY_SP_RETURN_URL=<your-localhost(frontend)-orders-verify>
 
 ## 5 API Endpoints
 
-- Bikes
-  - POST /api/products: Add a new bike.
-  - GET /api/products: Fetch all bikes.
-  - GET /api/products/:productId: Fetch a bike by ID.
-  - PATCH /api/products/:productId: Update bike details.
-  - DELETE /api/products/:productId: Delete a bike.
-- Orders
-  - POST /api/orders: Place a new order.
-  - GET /api/orders: Fetch all order bikes.
-  - GET /api/orders/revenue: Total revenue calculated from all orders.
-- Reviews
-  - POST /api/orders: Place a new order.
-  - GET /api/orders: Fetch all order bikes.
+- **API Endpoints**
+
+ **Authentication**
+  - POST /auth/register - Register a new user.
+  - POST /auth/login - User login & JWT token generation.
+
+ **Tenant**
+ - POST /rental-request/tenants/requests - Create rental request
+
+ - GET /rental-request/tenants/requests - Get tenant’s rental requests
+ - POST /rental-request/pay-rental-request - make payment tenant’s rental requests
+
+ - POST /rental-request/verify - verify payment tenant’s rental requests
+
+ - PATCH /api/users/:id - Update tenant profile
+
+
+ **Landlord**
+
+ - POST /rental/landlords/listings - Create a rental listing
+
+ - GET /rental/landlords/listings - Get all listings by landlord
+
+ - PATCH /rental/landlords/listings/:id - Update listing
+
+ - DELETE /rental/landlords/listings/:id  - Delete listing
+
+ - GET /rental-request/landlords/requests - Get rental requests
+
+ - PUT /rental-request/landlords/requests/:id - Approve/Reject request
+
+
+ **Admin**
+
+ - GET /api/users/admin- Retrieve all users
+ - PUT /api/users/admin/users/:id- Update user role
+ - POST /api/users/admin/change-status/:id- Update user active or in-active
+
+ - DELETE /api/users/admin/:id- Delete user
+
+ - GET /api/rental/admin/landlords/listings - Retrieve all listings
+
+ - GET /api/rental-request/admin/requests - Retrieve all listings request
+
+ - PUT /api/rental/admin/listings/:id - Update listing
+
+ - PUT /api/rental/admin/listings/:id - Delete listing
 
 ## Scripts
 
