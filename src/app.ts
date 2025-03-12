@@ -12,7 +12,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ['https://bike-stores.vercel.app', 'http://localhost:5173'],
+    origin: ['https://basafinder.vercel.app', 'http://localhost:3000'],
     credentials: true,
   }),
 );
