@@ -30,8 +30,9 @@ const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const auth_service_1 = require("./auth.service");
 const config_1 = __importDefault(require("../../config"));
 const register = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { password, user: userData } = req.body;
-    const result = yield auth_service_1.AuthServices.registerFromDB(password, userData);
+    //console.log(req.body);
+    const { user: userData } = req.body;
+    const result = yield auth_service_1.AuthServices.registerFromDB(userData);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.CREATED,
         success: true,
@@ -55,6 +56,7 @@ const login = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, 
         data: {
             accessToken,
             needsPasswordChange,
+            refreshToken,
         },
     });
 }));

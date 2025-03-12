@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TestimonialRouter = void 0;
+const express_1 = require("express");
+const auth_1 = require("../../middleware/auth");
+const user_constant_1 = require("../user/user.constant");
+const testimonial_controller_1 = require("./testimonial.controller");
+const router = (0, express_1.Router)();
+router.post('/create-testimonial', (0, auth_1.auth)(user_constant_1.USER_ROLE.admin, user_constant_1.USER_ROLE.tenant), testimonial_controller_1.testimonialController.createTestimonial);
+router.get('/', testimonial_controller_1.testimonialController.getAllTestimonials);
+router.delete('/testimonial/:id', testimonial_controller_1.testimonialController.deleteTestimonial);
+exports.TestimonialRouter = router;

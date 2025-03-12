@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.TipsRouter = void 0;
+const express_1 = require("express");
+const auth_1 = require("../../middleware/auth");
+const user_constant_1 = require("../user/user.constant");
+const tips_controller_1 = require("./tips.controller");
+const router = (0, express_1.Router)();
+router.post('/create-tips', (0, auth_1.auth)(user_constant_1.USER_ROLE.admin, user_constant_1.USER_ROLE.tenant, user_constant_1.USER_ROLE.landlord), tips_controller_1.tipsController.createTips);
+router.get('/', tips_controller_1.tipsController.getAllTips);
+router.delete('/tips/:id', tips_controller_1.tipsController.deleteTips);
+exports.TipsRouter = router;

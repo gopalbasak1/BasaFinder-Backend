@@ -4,23 +4,18 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const product_router_1 = __importDefault(require("../module/product-model(bike)/product.router"));
-const order_router_1 = __importDefault(require("../module/order-model/order.router"));
 const user_route_1 = require("../module/user/user.route");
 const auth_route_1 = require("../module/auth/auth.route");
 const review_router_1 = __importDefault(require("../module/Review/review.router"));
+const address_route_1 = require("../module/address/address.route");
+const rentalhouse_route_1 = require("../module/rentalhouse/rentalhouse.route");
+const request_route_1 = require("../module/request/request.route");
+const testimonial_route_1 = require("../module/testimonial/testimonial.route");
+const tips_route_1 = require("../module/tips/tips.route");
 const router = (0, express_1.Router)();
 // app.use('/api/products', bikeRouter); //1. Create a Bike
 // app.use('/api/orders', orderRoute); //2.Order A Bike
 const moduleRoutes = [
-    {
-        path: '/products',
-        route: product_router_1.default,
-    },
-    {
-        path: '/orders',
-        route: order_router_1.default,
-    },
     {
         path: '/users',
         route: user_route_1.UserRoute,
@@ -32,6 +27,26 @@ const moduleRoutes = [
     {
         path: '/reviews',
         route: review_router_1.default,
+    },
+    {
+        path: '/address',
+        route: address_route_1.AddressRoute,
+    },
+    {
+        path: '/rental',
+        route: rentalhouse_route_1.RentalRoute,
+    },
+    {
+        path: '/rental-request',
+        route: request_route_1.RequestRental,
+    },
+    {
+        path: '/testimonial',
+        route: testimonial_route_1.TestimonialRouter,
+    },
+    {
+        path: '/tips',
+        route: tips_route_1.TipsRouter,
     },
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

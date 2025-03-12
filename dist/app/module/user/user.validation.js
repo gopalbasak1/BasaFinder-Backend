@@ -2,54 +2,41 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserValidation = void 0;
 const zod_1 = require("zod");
-const user_constant_1 = require("./user.constant");
-// Schema for name object
-const NameSchema = zod_1.z.object({
-    firstName: zod_1.z.string().min(1, { message: 'First name is required' }).trim(),
-    middleName: zod_1.z.string().optional(),
-    lastName: zod_1.z.string().min(1, { message: 'Last name is required' }).trim(),
-});
-const UpdateNameSchema = zod_1.z.object({
-    firstName: zod_1.z
-        .string()
-        .min(1, { message: 'First name is required' })
-        .trim()
-        .optional(),
-    middleName: zod_1.z.string().optional(),
-    lastName: zod_1.z
-        .string()
-        .min(1, { message: 'Last name is required' })
-        .trim()
-        .optional(),
-});
 // Schema for user object
 const createUser = zod_1.z.object({
     body: zod_1.z.object({
         user: zod_1.z.object({
-            name: NameSchema,
-            email: zod_1.z.string().email({ message: 'Invalid email address' }),
+            name: zod_1.z.string({ required_error: 'Name is required' }),
+            email: zod_1.z.string(),
+            phoneNumber: zod_1.z.string({ required_error: 'Phone number is required' }),
             password: zod_1.z
                 .string()
                 .max(20, { message: 'Password can not be more than 20 characters' }),
+            role: zod_1.z.enum(['admin', 'landlord', 'tenant'], {
+                message: 'Invalid role',
+            }),
         }),
     }),
 });
 const updateUser = zod_1.z.object({
     body: zod_1.z.object({
         user: zod_1.z.object({
-            name: UpdateNameSchema.optional(),
+            name: zod_1.z.string({ required_error: 'Name is required' }).optional(),
             email: zod_1.z.string().email({ message: 'Invalid email address' }).optional(),
-            image: zod_1.z.string().optional(),
+            phoneNumber: zod_1.z
+                .string({ required_error: 'Phone number is required' })
+                .optional(),
+            imageUrls: zod_1.z.string().optional(),
         }),
     }),
 });
-const changeStatusValidationSchema = zod_1.z.object({
+const changeActivityStatusValidationSchema = zod_1.z.object({
     body: zod_1.z.object({
-        status: zod_1.z.enum([...user_constant_1.UserStatus]),
+        isActive: zod_1.z.boolean(),
     }),
 });
 exports.UserValidation = {
     createUser,
     updateUser,
-    changeStatusValidationSchema,
+    changeActivityStatusValidationSchema,
 };

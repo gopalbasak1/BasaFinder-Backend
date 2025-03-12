@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+import { Document, Types } from 'mongoose';
 
 export interface TTestimonial extends Document {
   user: Types.ObjectId;

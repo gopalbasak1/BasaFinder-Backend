@@ -33,9 +33,20 @@ const auth = (...requiredRoles) => {
         catch (error) {
             throw new AppErrors_1.default(http_status_codes_1.default.UNAUTHORIZED, 'Unauthorized');
         }
+        // Create query for finding user by email or phone number
+        let query = {};
+        if (decoded.email) {
+            query = { email: decoded.email };
+        }
+        else if (decoded.phoneNumber) {
+            query = { phoneNumber: decoded.phoneNumber };
+        }
+        else {
+            throw new AppErrors_1.default(http_status_codes_1.default.BAD_REQUEST, 'Email or phone number is required.');
+        }
         // const { role, email, iat } = decoded;
         // Find the user by email
-        const user = yield user_model_1.User.findOne({ email: decoded.email });
+        const user = yield user_model_1.User.findOne(query);
         if (!user) {
             throw new AppErrors_1.default(http_status_codes_1.default.NOT_FOUND, 'User not found');
         }
@@ -53,9 +64,10 @@ const auth = (...requiredRoles) => {
         req.user = {
             id: user._id.toString(),
             role: user.role,
-            email: user.email,
-            image: user.image,
-            name: user.name,
+            email: user === null || user === void 0 ? void 0 : user.email,
+            imageUrls: user === null || user === void 0 ? void 0 : user.imageUrls,
+            name: user === null || user === void 0 ? void 0 : user.name,
+            phoneNumber: user === null || user === void 0 ? void 0 : user.phoneNumber,
         };
         //console.log('Authenticated User:', req.user);
         next();

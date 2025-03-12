@@ -17,34 +17,22 @@ exports.User = void 0;
 const mongoose_1 = require("mongoose");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const config_1 = __importDefault(require("../../config"));
-const nameSchema = new mongoose_1.Schema({
-    firstName: {
-        type: String,
-        required: true,
-        trim: true,
-    },
-    middleName: {
-        type: String,
-        trim: true,
-    },
-    lastName: {
-        type: String,
-        required: true,
-        trim: true,
-    },
-});
 const userSchema = new mongoose_1.Schema({
     name: {
-        type: nameSchema,
+        type: String,
         required: [true, 'Name is required'],
     },
     role: {
         type: String,
-        enum: ['admin', 'customer'],
-        default: 'customer',
+        enum: ['admin', 'landlord', 'tenant'],
         required: true,
     },
     email: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    phoneNumber: {
         type: String,
         required: true,
         unique: true,
@@ -54,8 +42,9 @@ const userSchema = new mongoose_1.Schema({
         required: true,
         select: 0,
     },
-    image: {
-        type: String,
+    imageUrls: {
+        type: [String],
+        default: [],
     },
     needsPasswordChange: {
         type: Boolean,
@@ -72,19 +61,21 @@ const userSchema = new mongoose_1.Schema({
         type: Boolean,
         default: true,
     },
+    isListings: {
+        type: Boolean,
+        default: true,
+    },
     status: {
         type: String,
         enum: ['in-progress', 'blocked'],
         default: 'in-progress',
     },
+    lastLogin: {
+        type: Date,
+        default: Date.now,
+    },
 }, {
-    toJSON: { virtuals: true },
     timestamps: true,
-});
-// Virtual for full name
-userSchema.virtual('fullName').get(function () {
-    const { firstName, middleName, lastName } = (this === null || this === void 0 ? void 0 : this.name) || {};
-    return [firstName, middleName, lastName].filter(Boolean).join(' ');
 });
 // Pre-save hook to hash the password
 userSchema.pre('save', function (next) {
@@ -117,7 +108,7 @@ userSchema.post('save', function (doc, next) {
 });
 userSchema.statics.isJWTIssuedBeforePasswordChanged = function (passwordChangedTimestamp, jwtIssuedTimestamp) {
     const passwordChangedTime = new Date(passwordChangedTimestamp).getTime() / 1000;
-    console.log(passwordChangedTime, jwtIssuedTimestamp);
+    //console.log(passwordChangedTime, jwtIssuedTimestamp);
     return passwordChangedTime > jwtIssuedTimestamp;
 };
 exports.User = (0, mongoose_1.model)('User', userSchema);

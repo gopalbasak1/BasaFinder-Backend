@@ -16,19 +16,11 @@ exports.UserServices = void 0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable no-unused-vars */
 const QueryBuilder_1 = __importDefault(require("../../builder/QueryBuilder"));
+const AppErrors_1 = __importDefault(require("../../errors/AppErrors"));
+const rentalhouse_model_1 = require("../rentalhouse/rentalhouse.model");
 const user_constant_1 = require("./user.constant");
 const user_model_1 = require("./user.model");
-// const createUserIntoDB = async (password: string, payload: TUser) => {
-//   const existing = await User.findOne({ email: payload?.email });
-//   if (existing) {
-//     throw new AppError(httpStatus.CONFLICT, 'User already exists');
-//   }
-//   const userData: Partial<TUser> = { ...payload };
-//   userData.password = password || (config.default_password as string);
-//   const result = await User.create(userData);
-//   console.log(result);
-//   return result;
-// };
+const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const getAllUsersFromDB = (query) => __awaiter(void 0, void 0, void 0, function* () {
     const userQuery = new QueryBuilder_1.default(user_model_1.User.find(), query)
         .search(user_constant_1.userSearchableFields)
@@ -47,18 +39,35 @@ const updateUserIntoDB = (id, data) => __awaiter(void 0, void 0, void 0, functio
     }
     // 🔥 Extract the actual user data if nested inside "user"
     const updateData = data.user ? Object.assign({}, data.user) : Object.assign({}, data);
+    // Check if email or phone number is changing
+    const isEmailChanged = updateData.email && updateData.email !== existingUser.email;
+    const isPhoneChanged = updateData.phoneNumber &&
+        updateData.phoneNumber !== existingUser.phoneNumber;
     // 🔹 Ensure nested updates work correctly
     const updatedUser = yield user_model_1.User.findByIdAndUpdate(id, updateData, {
         new: true, // Return updated document
         runValidators: true, // Ensure validation rules apply
     });
-    return updatedUser;
+    return { updatedUser, shouldLogout: isEmailChanged || isPhoneChanged };
 });
-const changeStatus = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
+const changeActivityIntoDB = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield user_model_1.User.findByIdAndUpdate(id, payload, {
         new: true,
     });
     return result;
+});
+const deleteUserIntoDB = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield user_model_1.User.findById(userId);
+    if (!user) {
+        throw new Error('User not found');
+    }
+    // If the user is a landlord, delete their rental listings
+    if (user.role === 'landlord') {
+        yield rentalhouse_model_1.RentalListing.deleteMany({ landlordId: userId });
+    }
+    // ✅ Now deletes landlords, tenants, and admins (except themselves)
+    yield user_model_1.User.findByIdAndDelete(userId);
+    return { message: `${user.role} deleted successfully` };
 });
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getMe = (userid, role) => __awaiter(void 0, void 0, void 0, function* () {
@@ -66,10 +75,42 @@ const getMe = (userid, role) => __awaiter(void 0, void 0, void 0, function* () {
     const result = yield user_model_1.User.findById(userid); // Use correct variable
     return result;
 });
+/**
+ * Update a user's role.
+ * - Allows conversion of tenants to landlords (or vice versa) or promoting a user to admin.
+ * - Prevents demoting an admin to a non-admin role.
+ */
+const updateUserRoleIntoDB = (userId, newRole) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield user_model_1.User.findById(userId);
+    if (!user) {
+        throw new AppErrors_1.default(http_status_codes_1.default.NOT_FOUND, 'User not found');
+    }
+    // If the current user is an admin and the new role is not admin, do not allow change.
+    if (user.role === 'admin' && newRole !== 'admin') {
+        throw new AppErrors_1.default(http_status_codes_1.default.BAD_REQUEST, 'You cannot change another admin’s role');
+    }
+    // Otherwise, update the role
+    user.role = newRole;
+    const updatedUser = yield user.save();
+    return updatedUser;
+});
+const getSingleUserIntoDB = (userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const user = yield user_model_1.User.findById(userId);
+    if (!user) {
+        throw new AppErrors_1.default(http_status_codes_1.default.NOT_FOUND, 'User not found !');
+    }
+    if (user.isActive === false) {
+        throw new AppErrors_1.default(http_status_codes_1.default.FORBIDDEN, 'User is in-active');
+    }
+    return user;
+});
 exports.UserServices = {
     // createUserIntoDB,
     getAllUsersFromDB,
     updateUserIntoDB,
-    changeStatus,
+    changeActivityIntoDB,
     getMe,
+    deleteUserIntoDB,
+    updateUserRoleIntoDB,
+    getSingleUserIntoDB,
 };
