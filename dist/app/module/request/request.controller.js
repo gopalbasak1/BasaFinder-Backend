@@ -99,6 +99,7 @@ const payRentalRequest = (0, catchAsync_1.default)((req, res) => __awaiter(void 
     const payload = req.body;
     const result = yield request_service_1.RentalRequestService.payRentalRequestIntoDB(email, payload, req.ip);
     //console.log('result', result);
+    // console.log('result payrental', result);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
@@ -108,6 +109,7 @@ const payRentalRequest = (0, catchAsync_1.default)((req, res) => __awaiter(void 
 }));
 const verifyPayment = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const order = yield request_service_1.RentalRequestService.verifyPayment(req.query.order_id);
+    //console.log('verifypayment', order);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.CREATED,
         success: true,

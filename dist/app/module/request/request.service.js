@@ -33,6 +33,19 @@ const createRentalRequest = (tenantId, payload) => __awaiter(void 0, void 0, voi
     if (!payload.moveInDate) {
         throw new AppErrors_1.default(http_status_codes_1.default.BAD_REQUEST, 'Move-in date is required');
     }
+    // Find the listing to check availability
+    const listing = yield rentalhouse_model_1.RentalListing.findById(payload.listingId);
+    if (!listing) {
+        throw new AppErrors_1.default(http_status_codes_1.default.NOT_FOUND, 'Listing not found');
+    }
+    // 🔹 Check if the listing is already booked BEFORE creating a rental request
+    if (listing.isAvailable === false) {
+        throw new AppErrors_1.default(http_status_codes_1.default.FORBIDDEN, 'This Rental House is already booked.');
+    }
+    // Validate that moveInDate is not before availableFrom
+    if (new Date(payload.moveInDate) < new Date(listing.availableFrom)) {
+        throw new AppErrors_1.default(http_status_codes_1.default.BAD_REQUEST, `Move-in date cannot be before the listing's available date (${listing.availableFrom}).`);
+    }
     // Find tenant and create the rental request
     const tenant = yield user_model_1.User.findById(tenantId);
     if (!tenant) {
@@ -64,8 +77,8 @@ const createRentalRequest = (tenantId, payload) => __awaiter(void 0, void 0, voi
         },
     ]);
     // Extract landlord details
-    const listing = populatedRequest.listingId; // Explicitly cast as any to access properties
-    const landlord = listing === null || listing === void 0 ? void 0 : listing.landlordId;
+    const populatedListing = populatedRequest.listingId; // Explicitly cast as any to access properties
+    const landlord = populatedListing === null || populatedListing === void 0 ? void 0 : populatedListing.landlordId;
     if (landlord && landlord.email) {
         const subject = 'New Rental Request Received';
         const text = `Hello ${landlord.name},\n\nA new rental request has been submitted for your listing (${listing.holding}).\n\n📩 Tenant Message: "${newRequest === null || newRequest === void 0 ? void 0 : newRequest.message}".\n\nPlease review the request in your dashboard.\n\nThank you,\nBasa Finder Team
@@ -172,10 +185,6 @@ const updateRentalRequest = (requestId, updateData) => __awaiter(void 0, void 0,
     return updatedRequest;
 });
 const payRentalRequestIntoDB = (email, payload, client_ip) => __awaiter(void 0, void 0, void 0, function* () {
-    // console.log(
-    //   '🔍 Received rentalRequestId By services:',
-    //   payload.rentalRequestId,
-    // );
     const user = yield user_model_1.User.findOne({ email });
     if (!user) {
         throw new AppErrors_1.default(http_status_codes_1.default.NOT_FOUND, 'User not found');
@@ -187,15 +196,12 @@ const payRentalRequestIntoDB = (email, payload, client_ip) => __awaiter(void 0, 
     if (!rentalRequest) {
         throw new AppErrors_1.default(http_status_codes_1.default.NOT_FOUND, 'Rental request not found');
     }
-    // Ensure that only the tenant who made the request can pay
     if (rentalRequest.tenantId.toString() !== user._id.toString()) {
         throw new AppErrors_1.default(http_status_codes_1.default.FORBIDDEN, 'You can only pay for your own rental request');
     }
-    // Check if the request is approved before allowing payment
     if (rentalRequest.status !== 'approved') {
         throw new AppErrors_1.default(http_status_codes_1.default.FORBIDDEN, 'Payment can only be made for approved rental request');
     }
-    // Check if the listing is still available before allowing payment
     if (!rentalRequest.listingId.isAvailable) {
         throw new AppErrors_1.default(http_status_codes_1.default.FORBIDDEN, 'This listing is no longer available for rent');
     }
@@ -211,15 +217,24 @@ const payRentalRequestIntoDB = (email, payload, client_ip) => __awaiter(void 0, 
         customer_city: 'N/A',
         client_ip,
     };
+    // 🔹 Call Payment API
     const payment = yield request_utils_1.requestUtils.makePayment(shurjopayPayload);
+    console.log('Received Payment Response:', payment); // Debugging
     if (payment === null || payment === void 0 ? void 0 : payment.transactionStatus) {
-        yield request_model_1.RentalRequest.updateOne({
-            transaction: {
-                id: payment.sp_order_id,
-                transactionStatus: payment.transactionStatus,
+        yield request_model_1.RentalRequest.findByIdAndUpdate(rentalRequest._id, {
+            $set: {
+                'transaction.id': payment.sp_order_id,
+                'transaction.transactionStatus': payment.transactionStatus,
+                'transaction.bank_status': (payment === null || payment === void 0 ? void 0 : payment.bank_status) || 'N/A',
+                'transaction.sp_code': (payment === null || payment === void 0 ? void 0 : payment.sp_code) || 'N/A',
+                'transaction.sp_message': (payment === null || payment === void 0 ? void 0 : payment.sp_message) || 'N/A',
+                'transaction.method': (payment === null || payment === void 0 ? void 0 : payment.method) || 'N/A',
+                'transaction.date_time': (payment === null || payment === void 0 ? void 0 : payment.date_time) || new Date().toISOString(),
+                paymentStatus: 'paid',
             },
         });
     }
+    console.log('Payment processed successfully for', user.email);
     return payment.checkout_url;
 });
 const verifyPayment = (order_id) => __awaiter(void 0, void 0, void 0, function* () {
@@ -240,7 +255,8 @@ const verifyPayment = (order_id) => __awaiter(void 0, void 0, void 0, function* 
                     'transaction.date_time': paymentData.date_time,
                     paymentStatus: 'paid',
                 },
-            }, { new: true });
+            }, { new: true }); // Force execution
+            console.log('Updated Rental Request:', updatedRequest);
             // If the rental request is updated, update the listing to mark it as unavailable
             if (updatedRequest && updatedRequest.listingId) {
                 yield rentalhouse_model_1.RentalListing.findByIdAndUpdate(updatedRequest.listingId, {
@@ -263,6 +279,7 @@ const verifyPayment = (order_id) => __awaiter(void 0, void 0, void 0, function* 
             });
         }
     }
+    console.log('verifiedpayment services', verifiedPayment);
     return verifiedPayment;
 });
 const getAllRentalRequestIntoDBByAdmin = (userId, query) => __awaiter(void 0, void 0, void 0, function* () {

@@ -27,7 +27,7 @@ const rentalListingSchema = new mongoose_1.Schema({
         required: true,
     },
     postalCode: {
-        type: String,
+        type: Number,
     },
     upazila: {
         type: String,

@@ -7,7 +7,6 @@ const express_1 = require("express");
 const user_route_1 = require("../module/user/user.route");
 const auth_route_1 = require("../module/auth/auth.route");
 const review_router_1 = __importDefault(require("../module/Review/review.router"));
-const address_route_1 = require("../module/address/address.route");
 const rentalhouse_route_1 = require("../module/rentalhouse/rentalhouse.route");
 const request_route_1 = require("../module/request/request.route");
 const testimonial_route_1 = require("../module/testimonial/testimonial.route");
@@ -27,10 +26,6 @@ const moduleRoutes = [
     {
         path: '/reviews',
         route: review_router_1.default,
-    },
-    {
-        path: '/address',
-        route: address_route_1.AddressRoute,
     },
     {
         path: '/rental',
