@@ -4,7 +4,7 @@ BasaFinder is a full-stack web application providing a smart rental housing solu
 
 ## Live Deployment Link
 
-[Bike-Store-Server](https://basafinder-backend-one.vercel.app/)
+[BasaFinder-Backend](https://basafinder-backend-nine.vercel.app/)
 
 ## Features
 
