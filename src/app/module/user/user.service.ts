@@ -66,7 +66,7 @@ const changeActivityIntoDB = async (
   if (userToUpdate.role === 'admin' && currentUser.role === 'admin') {
     throw new AppError(
       httpStatus.FORBIDDEN,
-      "Admins can't deactivate his and other admins",
+      "Admins can't deactivate his & other admins",
     );
   }
 

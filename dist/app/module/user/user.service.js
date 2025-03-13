@@ -50,23 +50,10 @@ const updateUserIntoDB = (id, data) => __awaiter(void 0, void 0, void 0, functio
     });
     return { updatedUser, shouldLogout: isEmailChanged || isPhoneChanged };
 });
-const changeActivityIntoDB = (id, payload, currentUserId) => __awaiter(void 0, void 0, void 0, function* () {
-    // Fetch the user being updated
-    const userToUpdate = yield user_model_1.User.findById(id);
-    if (!userToUpdate) {
-        throw new AppErrors_1.default(http_status_codes_1.default.NOT_FOUND, 'User not found');
-    }
-    // Fetch the current user (the one making the request)
-    const currentUser = yield user_model_1.User.findById(currentUserId);
-    if (!currentUser) {
-        throw new AppErrors_1.default(http_status_codes_1.default.UNAUTHORIZED, 'Unauthorized action');
-    }
-    // Prevent an admin from deactivating another admin
-    if (userToUpdate.role === 'admin' && currentUser.role === 'admin') {
-        throw new AppErrors_1.default(http_status_codes_1.default.FORBIDDEN, "Admins can't deactivate his and other admins");
-    }
-    // Update the user's activity status
-    const result = yield user_model_1.User.findByIdAndUpdate(id, payload, { new: true });
+const changeActivityIntoDB = (id, payload) => __awaiter(void 0, void 0, void 0, function* () {
+    const result = yield user_model_1.User.findByIdAndUpdate(id, payload, {
+        new: true,
+    });
     return result;
 });
 const deleteUserIntoDB = (userId) => __awaiter(void 0, void 0, void 0, function* () {

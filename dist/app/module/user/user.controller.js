@@ -18,7 +18,6 @@ const catchAsync_1 = __importDefault(require("../../utils/catchAsync"));
 const sendResponse_1 = __importDefault(require("../../utils/sendResponse"));
 const http_status_codes_1 = __importDefault(require("http-status-codes"));
 const user_service_1 = require("./user.service");
-const AppErrors_1 = __importDefault(require("../../errors/AppErrors"));
 const getAllUsers = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //console.log(req.cookies);
     const result = yield user_service_1.UserServices.getAllUsersFromDB(req.query);
@@ -41,13 +40,8 @@ const updateUser = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, voi
     });
 }));
 const changeActivity = (0, catchAsync_1.default)((req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const id = req.params.id; // The user being updated
-    const currentUserId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // The ID of the user making the request (assumes req.user exists from authentication middleware)
-    if (!currentUserId) {
-        throw new AppErrors_1.default(http_status_codes_1.default.UNAUTHORIZED, 'Unauthorized action');
-    }
-    const result = yield user_service_1.UserServices.changeActivityIntoDB(id, req.body, currentUserId);
+    const id = req.params.id;
+    const result = yield user_service_1.UserServices.changeActivityIntoDB(id, req.body);
     (0, sendResponse_1.default)(res, {
         statusCode: http_status_codes_1.default.OK,
         success: true,
