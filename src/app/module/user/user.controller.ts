@@ -3,6 +3,7 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import httpStatus from 'http-status-codes';
 import { UserServices } from './user.service';
+import AppError from '../../errors/AppErrors';
 
 const getAllUsers = catchAsync(async (req, res) => {
   //console.log(req.cookies);
@@ -30,8 +31,18 @@ const updateUser = catchAsync(async (req, res) => {
 });
 
 const changeActivity = catchAsync(async (req, res) => {
-  const id = req.params.id;
-  const result = await UserServices.changeActivityIntoDB(id, req.body);
+  const id = req.params.id; // The user being updated
+  const currentUserId = req.user?.id; // The ID of the user making the request (assumes req.user exists from authentication middleware)
+
+  if (!currentUserId) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Unauthorized action');
+  }
+
+  const result = await UserServices.changeActivityIntoDB(
+    id,
+    req.body,
+    currentUserId,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

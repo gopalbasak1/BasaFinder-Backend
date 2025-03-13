@@ -48,10 +48,30 @@ const updateUserIntoDB = async (id: string, data: Partial<TUser> | any) => {
 const changeActivityIntoDB = async (
   id: string,
   payload: { isActive: boolean },
+  currentUserId: string, // The ID of the user making the request
 ) => {
-  const result = await User.findByIdAndUpdate(id, payload, {
-    new: true,
-  });
+  // Fetch the user being updated
+  const userToUpdate = await User.findById(id);
+  if (!userToUpdate) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+  // Fetch the current user (the one making the request)
+  const currentUser = await User.findById(currentUserId);
+  if (!currentUser) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Unauthorized action');
+  }
+
+  // Prevent an admin from deactivating another admin
+  if (userToUpdate.role === 'admin' && currentUser.role === 'admin') {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Admins can't deactivate his and other admins",
+    );
+  }
+
+  // Update the user's activity status
+  const result = await User.findByIdAndUpdate(id, payload, { new: true });
   return result;
 };
 
