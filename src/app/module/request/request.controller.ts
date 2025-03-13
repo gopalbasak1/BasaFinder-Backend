@@ -101,6 +101,7 @@ const payRentalRequest = catchAsync(async (req, res) => {
     req.ip!,
   );
   //console.log('result', result);
+  // console.log('result payrental', result);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -113,7 +114,7 @@ const verifyPayment = catchAsync(async (req, res) => {
   const order = await RentalRequestService.verifyPayment(
     req.query.order_id as string,
   );
-
+  //console.log('verifypayment', order);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,

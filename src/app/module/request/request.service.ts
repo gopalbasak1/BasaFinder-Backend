@@ -30,6 +30,29 @@ const createRentalRequest = async (
   if (!payload.moveInDate) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Move-in date is required');
   }
+
+  // Find the listing to check availability
+  const listing = await RentalListing.findById(payload.listingId);
+  if (!listing) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Listing not found');
+  }
+
+  // 🔹 Check if the listing is already booked BEFORE creating a rental request
+  if (listing.isAvailable === false) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      'This Rental House is already booked.',
+    );
+  }
+
+  // Validate that moveInDate is not before availableFrom
+  if (new Date(payload.moveInDate) < new Date(listing.availableFrom)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Move-in date cannot be before the listing's available date (${listing.availableFrom}).`,
+    );
+  }
+
   // Find tenant and create the rental request
   const tenant = await User.findById(tenantId);
   if (!tenant) {
@@ -72,8 +95,9 @@ const createRentalRequest = async (
   ]);
 
   // Extract landlord details
-  const listing = populatedRequest.listingId as any; // Explicitly cast as any to access properties
-  const landlord = listing?.landlordId as any;
+  const populatedListing = populatedRequest.listingId as any; // Explicitly cast as any to access properties
+
+  const landlord = populatedListing?.landlordId as any;
 
   if (landlord && landlord.email) {
     const subject = 'New Rental Request Received';
@@ -219,15 +243,22 @@ const updateRentalRequest = async (
   return updatedRequest;
 };
 
+interface PaymentResponse {
+  sp_order_id: string;
+  transactionStatus: string;
+  bank_status?: string;
+  sp_code?: string;
+  sp_message?: string;
+  method?: string;
+  date_time?: string;
+  checkout_url?: string;
+}
+
 const payRentalRequestIntoDB = async (
   email: string,
   payload: any,
   client_ip: string,
 ) => {
-  // console.log(
-  //   '🔍 Received rentalRequestId By services:',
-  //   payload.rentalRequestId,
-  // );
   const user = await User.findOne({ email });
   if (!user) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -248,7 +279,6 @@ const payRentalRequestIntoDB = async (
     throw new AppError(httpStatus.NOT_FOUND, 'Rental request not found');
   }
 
-  // Ensure that only the tenant who made the request can pay
   if (rentalRequest.tenantId.toString() !== user._id.toString()) {
     throw new AppError(
       httpStatus.FORBIDDEN,
@@ -256,7 +286,6 @@ const payRentalRequestIntoDB = async (
     );
   }
 
-  // Check if the request is approved before allowing payment
   if (rentalRequest.status !== 'approved') {
     throw new AppError(
       httpStatus.FORBIDDEN,
@@ -264,7 +293,6 @@ const payRentalRequestIntoDB = async (
     );
   }
 
-  // Check if the listing is still available before allowing payment
   if (!rentalRequest.listingId.isAvailable) {
     throw new AppError(
       httpStatus.FORBIDDEN,
@@ -287,16 +315,29 @@ const payRentalRequestIntoDB = async (
     client_ip,
   };
 
-  const payment = await requestUtils.makePayment(shurjopayPayload);
+  // 🔹 Call Payment API
+  const payment: PaymentResponse =
+    await requestUtils.makePayment(shurjopayPayload);
+
+  console.log('Received Payment Response:', payment); // Debugging
 
   if (payment?.transactionStatus) {
-    await RentalRequest.updateOne({
-      transaction: {
-        id: payment.sp_order_id,
-        transactionStatus: payment.transactionStatus,
+    await RentalRequest.findByIdAndUpdate(rentalRequest._id, {
+      $set: {
+        'transaction.id': payment.sp_order_id,
+        'transaction.transactionStatus': payment.transactionStatus,
+        'transaction.bank_status': payment?.bank_status || 'N/A',
+        'transaction.sp_code': payment?.sp_code || 'N/A',
+        'transaction.sp_message': payment?.sp_message || 'N/A',
+        'transaction.method': payment?.method || 'N/A',
+        'transaction.date_time': payment?.date_time || new Date().toISOString(),
+        paymentStatus: 'paid',
       },
     });
   }
+
+  console.log('Payment processed successfully for', user.email);
+
   return payment.checkout_url;
 };
 
@@ -324,7 +365,8 @@ const verifyPayment = async (order_id: string) => {
           },
         },
         { new: true },
-      );
+      ); // Force execution
+      console.log('Updated Rental Request:', updatedRequest);
 
       // If the rental request is updated, update the listing to mark it as unavailable
       if (updatedRequest && updatedRequest.listingId) {
@@ -350,6 +392,7 @@ const verifyPayment = async (order_id: string) => {
       );
     }
   }
+  console.log('verifiedpayment services', verifiedPayment);
   return verifiedPayment;
 };
 

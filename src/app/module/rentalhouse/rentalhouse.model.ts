@@ -27,7 +27,7 @@ const rentalListingSchema = new Schema<IRentalListing>(
       required: true,
     },
     postalCode: {
-      type: String,
+      type: Number,
     },
     upazila: {
       type: String,
